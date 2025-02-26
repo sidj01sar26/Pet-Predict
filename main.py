@@ -43,15 +43,21 @@ df["AnimalType_Dog"] = df.get("AnimalType_Dog", 0)
 
 X = df.drop("VisitClinic", axis=1)
 y = df["VisitClinic"]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 clf = RandomForestClassifier(random_state=42)
 clf.fit(X_train, y_train)
 
 # Prepare Input Data
 input_data = {
-    "AnimalAge": animal_age, "Weight": weight, "BodyTemperature": body_temperature,
-    "LastClinicVisitMonthDue": last_clinic_visit_month_due, "BowlFrequency": bowl_frequency,
-    "FoodIntakeFrequency": food_intake_frequency, "AnimalType_Cat": int(animal_type == "Cat"),
+    "AnimalAge": animal_age,
+    "Weight": weight,
+    "BodyTemperature": body_temperature,
+    "LastClinicVisitMonthDue": last_clinic_visit_month_due,
+    "BowlFrequency": bowl_frequency,
+    "FoodIntakeFrequency": food_intake_frequency,
+    "AnimalType_Cat": int(animal_type == "Cat"),
     "AnimalType_Dog": int(animal_type == "Dog"),
 }
 input_df = pd.DataFrame([input_data])
@@ -61,13 +67,14 @@ for col in X.columns:
 
 prediction = clf.predict(input_df)
 
+
 # Function to get at least 3 hospitals if none found, otherwise 10-12
 def get_nearby_hospitals(location):
     """Fetch veterinary hospitals using Overpass API, ensuring a minimum of 3 unique hospitals if none found."""
     overpass_url = "http://overpass-api.de/api/interpreter"
     geocode_url = f"https://nominatim.openstreetmap.org/search?format=json&q={location}"
     headers = {"User-Agent": "Mozilla/5.0"}
-    
+
     try:
         # Get lat, lon for the location
         geocode_response = requests.get(geocode_url, headers=headers).json()
@@ -89,12 +96,14 @@ def get_nearby_hospitals(location):
             );
             out body;
             """
-            response = requests.get(overpass_url, params={"data": overpass_query}).json()
+            response = requests.get(
+                overpass_url, params={"data": overpass_query}
+            ).json()
             hospitals = [
                 {
                     "name": node.get("tags", {}).get("name", f"Hospital {i+1}"),
                     "lat": node["lat"],
-                    "lon": node["lon"]
+                    "lon": node["lon"],
                 }
                 for i, node in enumerate(response.get("elements", []))
             ]
@@ -102,27 +111,41 @@ def get_nearby_hospitals(location):
 
         # If no hospitals found, add only 3 unique random ones
         random_hospitals = [
-            "Greenfield Vet Clinic", "Pinewood Animal Care", "Oakwood Pet Center",
-            "Blue Haven Veterinary", "Riverside Pet Hospital", "Silver Paw Clinic",
-            "Meadowview Vet", "Summit Animal Hospital", "Evergreen Pet Health",
-            "Lakeside Veterinary", "Golden Gate Vet", "Sunset Animal Clinic"
+            "Greenfield Vet Clinic",
+            "Pinewood Animal Care",
+            "Oakwood Pet Center",
+            "Blue Haven Veterinary",
+            "Riverside Pet Hospital",
+            "Silver Paw Clinic",
+            "Meadowview Vet",
+            "Summit Animal Hospital",
+            "Evergreen Pet Health",
+            "Lakeside Veterinary",
+            "Golden Gate Vet",
+            "Sunset Animal Clinic",
         ]
         random.shuffle(random_hospitals)  # Shuffle to ensure uniqueness
 
         if len(hospitals) == 0:
-            hospitals = [{"name": random_hospitals[i], "lat": lat, "lon": lon} for i in range(3)]
+            hospitals = [
+                {"name": random_hospitals[i], "lat": lat, "lon": lon} for i in range(3)
+            ]
         elif len(hospitals) < 10:
-            hospitals += [{"name": random_hospitals[i], "lat": lat, "lon": lon} for i in range(10 - len(hospitals))]
+            hospitals += [
+                {"name": random_hospitals[i], "lat": lat, "lon": lon}
+                for i in range(10 - len(hospitals))
+            ]
 
         return hospitals[:12]  # Return 10-12 hospitals if found, else only 3
     except requests.exceptions.RequestException:
         return []
 
+
 # Display Prediction & Hospitals
 st.header("Prediction:")
 if prediction[0] == 1:
     st.write("⚠️ **Your pet may need a clinic visit.**")
-    
+
     if location:
         hospitals = get_nearby_hospitals(location)
 
@@ -132,9 +155,15 @@ if prediction[0] == 1:
                 st.write(f"🏥 **{hospital['name']}**")
 
             # Display Map
-            map_ = folium.Map(location=[hospitals[0]["lat"], hospitals[0]["lon"]], zoom_start=12)
+            map_ = folium.Map(
+                location=[hospitals[0]["lat"], hospitals[0]["lon"]], zoom_start=12
+            )
             for hospital in hospitals:
-                folium.Marker([hospital["lat"], hospital["lon"]], tooltip=hospital["name"], icon=folium.Icon(color="red")).add_to(map_)
+                folium.Marker(
+                    [hospital["lat"], hospital["lon"]],
+                    tooltip=hospital["name"],
+                    icon=folium.Icon(color="red"),
+                ).add_to(map_)
             st_folium(map_, width=700, height=500)
         else:
             st.write("No hospitals found in this location. Try refining your search.")
